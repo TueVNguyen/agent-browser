@@ -1,9 +1,14 @@
 {
   "name": "agent-browser",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Headless browser automation CLI for AI agents",
   "type": "module",
   "main": "dist/index.js",
+  "files": [
+    "dist",
+    "bin",
+    "scripts"
+  ],
   "bin": {
     "agent-browser": "./bin/agent-browser"
   },
