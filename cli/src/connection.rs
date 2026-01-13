@@ -159,7 +159,7 @@ pub struct DaemonResult {
     pub already_running: bool,
 }
 
-pub fn ensure_daemon(session: &str, headed: bool, executable_path: Option<&str>) -> Result<DaemonResult, String> {
+pub fn ensure_daemon(session: &str, headed: bool, executable_path: Option<&str>, cdp_url: Option<&str>) -> Result<DaemonResult, String> {
     if is_daemon_running(session) && daemon_ready(session) {
         return Ok(DaemonResult { already_running: true });
     }
@@ -182,7 +182,7 @@ pub fn ensure_daemon(session: &str, headed: bool, executable_path: Option<&str>)
     #[cfg(unix)]
     {
         use std::os::unix::process::CommandExt;
-        
+
         let mut cmd = Command::new("node");
         cmd.arg(daemon_path)
             .env("AGENT_BROWSER_DAEMON", "1")
@@ -194,6 +194,10 @@ pub fn ensure_daemon(session: &str, headed: bool, executable_path: Option<&str>)
 
         if let Some(path) = executable_path {
             cmd.env("AGENT_BROWSER_EXECUTABLE_PATH", path);
+        }
+
+        if let Some(url) = cdp_url {
+            cmd.env("AGENT_BROWSER_CDP_URL", url);
         }
 
         // Create new process group and session to fully detach
@@ -215,7 +219,7 @@ pub fn ensure_daemon(session: &str, headed: bool, executable_path: Option<&str>)
     #[cfg(windows)]
     {
         use std::os::windows::process::CommandExt;
-        
+
         // On Windows, use cmd.exe to run node to ensure proper PATH resolution.
         // This handles cases where node.exe isn't directly in PATH but node.cmd is.
         // Pass the entire command as a single string to /c to handle paths with spaces.
@@ -234,10 +238,14 @@ pub fn ensure_daemon(session: &str, headed: bool, executable_path: Option<&str>)
             cmd.env("AGENT_BROWSER_EXECUTABLE_PATH", path);
         }
 
+        if let Some(url) = cdp_url {
+            cmd.env("AGENT_BROWSER_CDP_URL", url);
+        }
+
         // CREATE_NEW_PROCESS_GROUP | DETACHED_PROCESS
         const CREATE_NEW_PROCESS_GROUP: u32 = 0x00000200;
         const DETACHED_PROCESS: u32 = 0x00000008;
-        
+
         cmd.creation_flags(CREATE_NEW_PROCESS_GROUP | DETACHED_PROCESS)
             .stdin(Stdio::null())
             .stdout(Stdio::null())

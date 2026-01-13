@@ -149,7 +149,7 @@ fn main() {
         }
     };
 
-    let daemon_result = match ensure_daemon(&flags.session, flags.headed, flags.executable_path.as_deref()) {
+    let daemon_result = match ensure_daemon(&flags.session, flags.headed, flags.executable_path.as_deref(), flags.cdp_url.as_deref()) {
         Ok(result) => result,
         Err(e) => {
             if flags.json {

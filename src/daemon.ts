@@ -163,6 +163,7 @@ export async function startDaemon(): Promise<void> {
               action: 'launch',
               headless: true,
               executablePath: process.env.AGENT_BROWSER_EXECUTABLE_PATH,
+              cdpUrl: process.env.AGENT_BROWSER_CDP_URL,
             });
           }
 

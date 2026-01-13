@@ -14,6 +14,7 @@ export interface LaunchCommand extends BaseCommand {
   browser?: 'chromium' | 'firefox' | 'webkit';
   headers?: Record<string, string>;
   executablePath?: string;
+  cdpUrl?: string; // Connect to existing browser via CDP (Chrome DevTools Protocol)
 }
 
 export interface NavigateCommand extends BaseCommand {

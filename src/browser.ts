@@ -583,35 +583,77 @@ export class BrowserManager {
       return;
     }
 
-    // Select browser type
-    const browserType = options.browser ?? 'chromium';
-    const launcher =
-      browserType === 'firefox' ? firefox : browserType === 'webkit' ? webkit : chromium;
+    // Check if connecting to existing browser via CDP
+    if (options.cdpUrl) {
+      // Connect to existing browser via Chrome DevTools Protocol
+      this.browser = await chromium.connectOverCDP(options.cdpUrl);
 
-    // Launch browser
-    this.browser = await launcher.launch({
-      headless: options.headless ?? true,
-      executablePath: options.executablePath,
-    });
+      // Get existing contexts and pages
+      const contexts = this.browser.contexts();
+      if (contexts.length > 0) {
+        this.contexts = contexts;
+        const pages = contexts[0].pages();
+        if (pages.length > 0) {
+          this.pages = pages;
+          this.activePageIndex = 0;
 
-    // Create context with viewport and optional headers
-    const context = await this.browser.newContext({
-      viewport: options.viewport ?? { width: 1280, height: 720 },
-      extraHTTPHeaders: options.headers,
-    });
+          // Set up tracking for existing pages
+          for (const page of this.pages) {
+            this.setupPageTracking(page);
+          }
+        } else {
+          // No existing pages, create a new one
+          const page = await contexts[0].newPage();
+          this.pages.push(page);
+          this.activePageIndex = 0;
+          this.setupPageTracking(page);
+        }
+      } else {
+        // No existing context, create one
+        const context = await this.browser.newContext({
+          viewport: options.viewport ?? { width: 1280, height: 720 },
+          extraHTTPHeaders: options.headers,
+        });
+        context.setDefaultTimeout(10000);
+        this.contexts.push(context);
 
-    // Set default timeout to 10 seconds (Playwright default is 30s)
-    context.setDefaultTimeout(10000);
+        const page = await context.newPage();
+        this.pages.push(page);
+        this.activePageIndex = 0;
+        this.setupPageTracking(page);
+      }
+    } else {
+      // Launch new browser instance
+      // Select browser type
+      const browserType = options.browser ?? 'chromium';
+      const launcher =
+        browserType === 'firefox' ? firefox : browserType === 'webkit' ? webkit : chromium;
 
-    this.contexts.push(context);
+      // Launch browser
+      this.browser = await launcher.launch({
+        headless: options.headless ?? true,
+        executablePath: options.executablePath,
+      });
 
-    // Create initial page
-    const page = await context.newPage();
-    this.pages.push(page);
-    this.activePageIndex = 0;
+      // Create context with viewport and optional headers
+      const context = await this.browser.newContext({
+        viewport: options.viewport ?? { width: 1280, height: 720 },
+        extraHTTPHeaders: options.headers,
+      });
 
-    // Automatically start console and error tracking
-    this.setupPageTracking(page);
+      // Set default timeout to 10 seconds (Playwright default is 30s)
+      context.setDefaultTimeout(10000);
+
+      this.contexts.push(context);
+
+      // Create initial page
+      const page = await context.newPage();
+      this.pages.push(page);
+      this.activePageIndex = 0;
+
+      // Automatically start console and error tracking
+      this.setupPageTracking(page);
+    }
   }
 
   /**
